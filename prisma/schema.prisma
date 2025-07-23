@@ -1,0 +1,251 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+model Badge {
+  id          Int          @id @default(autoincrement())
+  name        String
+  description String
+  icon        String?
+  criteria    String
+  xp          Int?         @default(0)
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  userBadges  UserBadge[]
+
+  @@map("badges")
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("categories")
+}
+
+model Contest {
+  id                 Int                @id @default(autoincrement())
+  title              String
+  code               String
+  description        String?
+  startTime          DateTime          @map("start_time")
+  endTime            DateTime          @map("end_time")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  isActive           Boolean?          @default(true) @map("is_active")
+  participantCount   Int?              @default(0) @map("participant_count")
+  problemCount       Int?              @default(0) @map("problem_count")
+  difficulty         String?           @default("medium")
+
+  participants       ContestParticipant[]
+  problems           ContestProblem[]
+
+  @@map("contests")
+}
+
+model ContestParticipant {
+  contestId Int     @map("contest_id")
+  userId    String  @map("user_id")
+
+  contest   Contest @relation(fields: [contestId], references: [id])
+  user      Profile @relation(fields: [userId], references: [id])
+
+  @@id([contestId, userId])
+  @@unique([contestId, userId], name: "unique_contest_participant")
+
+  @@map("contest_participants")
+}
+
+model ContestProblem {
+  id         Int      @id @default(autoincrement())
+  contestId  Int      @map("contest_id")
+  problemId  Int      @map("problem_id")
+  xp         Int?     @default(100)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  contest    Contest  @relation(fields: [contestId], references: [id])
+
+  @@unique([contestId, problemId], name: "unique_contest_problem")
+
+  @@map("contest_problems")
+}
+
+model DifficultyLevel {
+  id               Int      @id @default(autoincrement())
+  name             String   @unique
+  xpMultiplier     Float?   @default(1.0) @map("xp_multiplier")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("difficulty_levels")
+}
+
+model ProblemLanguage {
+  id         Int      @id @default(autoincrement())
+  name       String
+  displayName String  @map("display_name")
+  version    String
+  isActive   Boolean? @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("problem_languages")
+}
+
+model ProblemTopic {
+  problemId Int    @map("problem_id")
+  topicId   Int    @map("topic_id")
+
+  problem   Problem @relation(fields: [problemId], references: [id])
+  topic     Topic   @relation(fields: [topicId], references: [id])
+
+  @@id([problemId, topicId])
+
+  @@map("problem_topics")
+}
+
+model Problem {
+  id                   Int       @id @default(autoincrement())
+  title                String
+  description          String
+  difficulty           String
+  code                 String
+  constraints          String?
+  inputFormat          String?  @map("input_format")
+  outputFormat         String?  @map("output_format")
+  sampleInput          String?  @map("sample_input")
+  sampleOutput         String?  @map("sample_output")
+  explanation          String?
+  solutionCode         String?  @map("solution_code")
+  timeLimit            Int?     @map("time_limit")
+  memoryLimit          Int?     @map("memory_limit")
+  authorId             String?  @map("author_id")
+  isActive             Boolean? @default(true) @map("is_active")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime? @map("updated_at")
+  editorial            String?
+  tags                 String[]
+  hints                String[]
+  category             String?
+  timeComplexity       String?  @map("time_complexity")
+  spaceComplexity      String?  @map("space_complexity")
+  languages            String[] @default(["javascript", "python", "java", "cpp"])
+  xp                   Int?     @default(100)
+  successRate          Float?   @default(0.0) @map("success_rate")
+  totalSubmissions     Int?     @default(0) @map("total_submissions")
+  successfulSubmissions Int?    @default(0) @map("successful_submissions")
+
+  topics               ProblemTopic[]
+
+  @@map("problems")
+}
+
+model Profile {
+  id          String   @id
+  username    String?  @unique
+  fullName    String?  @map("full_name")
+  avatarUrl   String?  @map("avatar_url")
+  bio         String?
+  createdAt   DateTime? @default(now()) @map("created_at")
+  updatedAt   DateTime? @map("updated_at")
+  institution String?
+  country     String?
+  rating      Int?
+
+  contestParticipants ContestParticipant[]
+  userBadges         UserBadge[]
+
+  @@map("profiles")
+}
+
+model Solution {
+  id              Int      @id @default(autoincrement())
+  userId          String   @map("user_id")
+  problemId       Int      @map("problem_id")
+  code            String
+  language        String
+  status          String
+  executionTime   Float?   @map("execution_time")
+  memoryUsed      Float?   @map("memory_used")
+  xpEarned        Int?     @default(0) @map("xp_earned")
+  isOptimal       Boolean? @default(false) @map("is_optimal")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("solutions")
+}
+
+model Submission {
+  id            Int      @id @default(autoincrement())
+  userId        String   @map("user_id")
+  problemId     Int      @map("problem_id")
+  code          String
+  language      String
+  status        String
+  executionTime Float?   @map("execution_time")
+  memoryUsed    Float?   @map("memory_used")
+  contestId     Int?     @map("contest_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("submissions")
+}
+
+model TestCase {
+  id            Int      @id @default(autoincrement())
+  problemId     Int      @map("problem_id")
+  input         String
+  expectedOutput String  @map("expected_output")
+  isSample      Boolean? @default(false) @map("is_sample")
+  isHidden      Boolean? @default(false) @map("is_hidden")
+  createdAt     DateTime? @default(now()) @map("created_at")
+
+  @@map("test_cases")
+}
+
+model Topic {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  problems    ProblemTopic[]
+
+  @@map("topics")
+}
+
+model UserBadge {
+  userId    String   @map("user_id")
+  badgeId   Int      @map("badge_id")
+  earnedAt  DateTime @default(now()) @map("earned_at")
+
+  user      Profile  @relation(fields: [userId], references: [id])
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+
+  @@id([userId, badgeId])
+
+  @@map("user_badges")
+}
+
+model UserStatistics {
+  userId              String   @id @map("user_id")
+  problemsSolved      Int?     @default(0) @map("problems_solved")
+  totalSubmissions    Int?     @default(0) @map("total_submissions")
+  acceptedSubmissions Int?     @default(0) @map("accepted_submissions")
+  wrongSubmissions    Int?     @default(0) @map("wrong_submissions")
+  compilationErrors   Int?     @default(0) @map("compilation_errors")
+  runtimeErrors       Int?     @default(0) @map("runtime_errors")
+  timeLimitExceeded   Int?     @default(0) @map("time_limit_exceeded")
+  easySolved          Int?     @default(0) @map("easy_solved")
+  mediumSolved        Int?     @default(0) @map("medium_solved")
+  hardSolved          Int?     @default(0) @map("hard_solved")
+  lastUpdated         DateTime? @default(now()) @map("last_updated")
+  totalXp             Int?     @default(0) @map("total_xp")
+  rank                Int?
+  streak              Int?     @default(0)
+  lastSolvedDate      DateTime? @map("last_solved_date")
+
+  @@map("user_statistics")
+}
